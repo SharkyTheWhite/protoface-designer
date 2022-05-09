@@ -16,7 +16,6 @@ export class ProtoFacePanel {
         leds.push({ x: (c + 0.5) * xStep, y: (r + 0.5) * yStep })
       }
     }
-    console.log(leds)
     return leds
   }
 
