@@ -32,7 +32,7 @@ jobs:
           yarn build
       - name: Force-Push to gh-pages
         shell: bash
-        run:
+        run: |
           cd dist
           ln -s index.html 404.html
           git init
