@@ -1,4 +1,10 @@
-# protoface-designer
+# ProtoFace Designer
+
+A tool to easily create facial expressions for your pixel-based visor.
+
+*This is a draft project - no functionality yet.*
+
+---
 
 ## Project setup
 ```

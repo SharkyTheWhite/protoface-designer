@@ -1,5 +1,6 @@
 <template>
   <nav>
+    <span>ProtoFace Designer</span> |
     <router-link to="/">Home</router-link> |
     <router-link to="/about">About</router-link>
   </nav>
@@ -17,7 +18,9 @@
 
 nav {
   padding: 30px;
-
+  span {
+    font-weight: bolder
+  }
   a {
     font-weight: bold;
     color: #2c3e50;
