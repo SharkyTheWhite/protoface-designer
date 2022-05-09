@@ -1,0 +1,45 @@
+name: Deploy to GitHub Pages
+
+# TODO: Add trigger for release once out of draft
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  gh-pages-deploy:
+    runs-on: ubuntu-20.04
+    name: Build and Deploy to GitHub Pages
+    env:
+      NODE_ENV: production
+      VUE_APP_PUBLIC_PATH: protoface-designer
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14
+          cache: yarn
+      - name: Install Dependencies
+        run:
+          yarn install --frozen-lockfile
+      - name: Linting
+        run:
+          yarn lint
+      - name: Unit Tests
+        run:
+          yarn test:unit
+      - name: Yarn Build
+        run:
+          yarn build
+      - name: Force-Push to gh-pages
+        shell: bash
+        run:
+          cd dist
+          ln -s index.html 404.html
+          git init
+          git checkout -b gh-pages
+          git config user.email "deploy@example.com"
+          git config user.name "GitHub Action Deploy"
+          git add -A
+          git commit -m "Automatic Deploy of ${{ env.GITHUB_SHA }}"
+          git push -f https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages:gh-pages
