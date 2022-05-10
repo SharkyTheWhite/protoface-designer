@@ -33,12 +33,12 @@ jobs:
       - name: Force-Push to gh-pages
         shell: bash
         run: |
+          export DEPLOY_JOB_SOURCE_COMMIT=$(git rev-parse --short HEAD)
           cd dist
           ln -s index.html 404.html
-          git init
-          git checkout -b gh-pages
+          git init -b gh-pages
           git config user.email "deploy@example.com"
           git config user.name "GitHub Action Deploy"
           git add -A
-          git commit -m "Automatic Deploy of ${{ env.GITHUB_SHA }}"
-          git push -f https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages:gh-pages
+          git commit -m "Automatic Deploy of $DEPLOY_JOB_SOURCE_COMMIT"
+          git push -f https://SharkyTheWhite:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages:gh-pages
