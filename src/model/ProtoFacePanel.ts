@@ -7,6 +7,8 @@ export class ProtoFacePanel {
   moduleWidth = 32.0;
   moduleHeight = 32.0;
 
+  ledStates = Array(this.rows * this.columns);
+
   public getLedCoordinates () {
     const leds = []
     const xStep = this.moduleWidth / (this.columns)
@@ -23,5 +25,13 @@ export class ProtoFacePanel {
     this.x = x
     this.y = y
     return this
+  }
+
+  public getLedState (index: number): boolean {
+    return this.ledStates[index]
+  }
+
+  public setLedState (index: number, value: boolean) {
+    this.ledStates[index] = value
   }
 }
