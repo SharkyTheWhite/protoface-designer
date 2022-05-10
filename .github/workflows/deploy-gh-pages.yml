@@ -13,7 +13,7 @@ jobs:
     env:
       VUE_APP_PUBLIC_PATH: /protoface-designer
     permissions:
-      pages: write
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
