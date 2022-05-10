@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-20.04
     name: Build and Deploy to GitHub Pages
     env:
-      VUE_APP_PUBLIC_PATH: protoface-designer
+      VUE_APP_PUBLIC_PATH: /protoface-designer
+    permissions:
+      pages: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -41,4 +43,5 @@ jobs:
           git config user.name "GitHub Action Deploy"
           git add -A
           git commit -m "Automatic Deploy of $DEPLOY_JOB_SOURCE_COMMIT"
-          git push -f https://SharkyTheWhite:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages:gh-pages
+          git push -f https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gh-pages:gh-pages
+          
