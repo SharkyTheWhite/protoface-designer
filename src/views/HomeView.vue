@@ -5,27 +5,30 @@
     <div class="-view">
       <ProtoFaceView/>
     </div>
+    <div>
+      <a download="face.h" :href="faceHDataURI">Save <code>face.h</code> File ...</a>
+    </div>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
 import ProtoFaceView from '@/components/ProtoFaceView.vue'
-// import HelloWorld from '@/components/HelloWorld.vue' // @ is an alias to /src
+import { computed } from 'vue'
+import { FaceH } from '@/model/FaceH'
 
-export default defineComponent({
-  name: 'HomeView',
-  components: {
-    ProtoFaceView
-    // HelloWorld
-  }
+const faceH = new FaceH()
+
+const faceHDataURI = computed(() => {
+  const content = faceH.getHFileContent()
+  return 'data:text/plain;base64,' + btoa(content)
 })
+
 </script>
 
 <style scoped>
 .-view {
   height: 70vh;
-  width: 70vw;
+  width: 95vw;
   margin: auto;
 }
 </style>
