@@ -9,13 +9,32 @@ export class ProtoFacePanel {
 
   ledStates = Array(this.rows * this.columns);
 
+  public readonly mapping = {
+    swapRowColumn: true,
+    flipRows: false,
+    flipColumns: false
+  }
+
+  constructor () {
+    this.ledStates.fill(false)
+  }
+
   public getLedCoordinates () {
     const leds = []
     const xStep = this.moduleWidth / (this.columns)
     const yStep = this.moduleHeight / (this.rows)
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.columns; c++) {
-        leds.push({ x: (c + 0.5) * xStep, y: (r + 0.5) * yStep })
+        let rr = r
+        let cc = c
+        if (this.mapping.flipRows) rr = this.rows - r - 1
+        if (this.mapping.flipColumns) cc = this.columns - c - 1
+        if (this.mapping.swapRowColumn) {
+          const t = cc
+          cc = rr
+          rr = t
+        }
+        leds.push({ x: (cc + 0.5) * xStep, y: (rr + 0.5) * yStep })
       }
     }
     return leds

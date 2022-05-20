@@ -17,31 +17,16 @@
 </template>
 
 <script setup lang="ts">
-import { ProtoFacePanel } from '@/model/ProtoFacePanel'
-import { computed, reactive } from 'vue'
+import { ProtoFace } from '@/model/ProtoFace'
+import { computed, defineEmits, defineProps, reactive } from 'vue'
 
-const panels = reactive([
-  // This is for demo only
-  new ProtoFacePanel().moveTo(-128, 0),
-  new ProtoFacePanel().moveTo(-96, 0),
-  new ProtoFacePanel().moveTo(-64, 0),
-  new ProtoFacePanel().moveTo(-32, 0),
+const props = defineProps<{
+  face: ProtoFace
+}>()
 
-  new ProtoFacePanel().moveTo(32, 0),
-  new ProtoFacePanel().moveTo(64, 0),
-  new ProtoFacePanel().moveTo(96, 0),
-  new ProtoFacePanel().moveTo(128, 0),
+const emit = defineEmits<{(e: 'ledsUpdated'): void }>()
 
-  new ProtoFacePanel().moveTo(132, -70),
-  new ProtoFacePanel().moveTo(100, -70),
-
-  new ProtoFacePanel().moveTo(32, -50),
-
-  new ProtoFacePanel().moveTo(-32, -50),
-
-  new ProtoFacePanel().moveTo(-100, -70),
-  new ProtoFacePanel().moveTo(-132, -70)
-])
+const panels = reactive(props.face.panels)
 
 function mouseDownOnPixel (panelIndex: number, ledIndex: number) {
   mode.drawing = true
@@ -61,6 +46,7 @@ function mouseUp () {
 function mouseEnterPixel (panelIndex: number, ledIndex: number) {
   if (mode.drawing) {
     panels[panelIndex].setLedState(ledIndex, mode.color)
+    emit('ledsUpdated')
   }
 }
 
