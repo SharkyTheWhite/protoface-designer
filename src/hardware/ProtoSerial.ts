@@ -1,12 +1,14 @@
-export class ProtoSerial extends EventTarget {
+import { Proto } from '@/hardware/Proto'
+
+/**
+ * @class ProtoSerial
+ * @brief Handle connection to Hardware via client-side serial port
+ */
+export class ProtoSerial extends Proto {
   private port?: SerialPort
   private writer?: WritableStreamDefaultWriter
-  public name?: string
 
   private enc = new TextEncoder()
-
-  private _connected: Event = new Event('connected')
-  private _disconnected: Event = new Event('disconnected')
 
   public static isBrowserSupported () : boolean {
     return 'serial' in navigator
@@ -75,51 +77,29 @@ export class ProtoSerial extends EventTarget {
     this.port = undefined
     this.writer = undefined
     this.name = undefined
-    this.dispatchEvent(this._disconnected)
+    this.emitDisconnected()
   }
 
-  public async writeFrame (frame: Array<boolean>, offset = 0, length?:number) {
+  protected async sendCommand (command: string) {
     if (!this.port) throw new Error('Proto not connected')
-    if (undefined === length) {
-      length = frame.length - offset
-    }
-    if (length < 0) return
-    if (offset >= frame.length) return
-    if (offset % 8 !== 0) throw new Error('Offset must be multiple of 8 or zero')
-
-    const buffer : Array<number> = []
-    for (let i = 0; i < length; i += 8) {
-      let byte = 0
-      for (let k = 0; k < 8; k++) {
-        if (frame[i + k]) byte += (1 << k)
-      }
-      buffer.push(byte)
-    }
-    const blockSize = 4
-    for (let i = 0; i < buffer.length; i += blockSize) {
-      let cmd = 'W' + (i + offset).toString(16).toUpperCase().padStart(2, '0')
-      for (let k = 0; k < blockSize && k + i < buffer.length; k++) {
-        cmd += buffer[i + k].toString(16).toUpperCase().padStart(2, '0')
-      }
-      await this.writer?.write(this.enc.encode(cmd + '\n'))
-      const result = await ProtoSerial.readLine(this.port.readable, 1000)
-      if (result.trim() !== ':') throw new Error('Proto did not ACK write command: ' + result)
-    }
+    await this.writer?.write(this.enc.encode(command + '\n'))
+    return await ProtoSerial.readLine(this.port.readable, 1000)
   }
 
   public async connect () {
     if (this.isConnected) await this.disconnect()
     await navigator.serial.requestPort({
       filters: [
-        { usbVendorId: 0x2341 } // Arduino
+        // { usbVendorId: 0x2341 } // Arduino
       ]
     }).then(async (port) => {
       await port.open({
-        baudRate: 460800,
+        baudRate: 115200, // 460800,
         dataBits: 8,
         stopBits: 1,
         parity: 'none',
-        flowControl: 'none'
+        flowControl: 'none',
+        bufferSize: 128
       }).then(async () => {
         // If we cannot get a writer, we cannot do anything
         let wr
@@ -135,13 +115,12 @@ export class ProtoSerial extends EventTarget {
           try {
             await wr.write(this.enc.encode('\n\n'))
             await ProtoSerial.readLine(port.readable, 10000)
-          } finally {
+            for (let i = 0; i < 16; i++) {
+              await ProtoSerial.readLine(port.readable, 200)
+            }
+          } catch (e) {
             // ignore initial read
           }
-
-          // Enter controlled mode, clear Framebuffer
-          await wr.write(this.enc.encode('C\n'))
-          await ProtoSerial.readLine(port.readable, 10000)
 
           // Read Proto Info
           await wr.write(this.enc.encode('?\n'))
@@ -154,11 +133,11 @@ export class ProtoSerial extends EventTarget {
             this.name = nameInfo.substring(7).trimEnd()
             this.writer = wr
             this.port = port
-            this.dispatchEvent(this._connected)
+            this.emitConnected()
           } else {
             // Forward error to catch below
             // noinspection ExceptionCaughtLocallyJS
-            throw new Error('Incompatible Proto')
+            throw new Error('Incompatible Proto. Got ' + nameInfo)
           }
         } catch (error) {
           // In case of communication errors, try to send back into test mode
