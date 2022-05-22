@@ -46,6 +46,13 @@ export class ProtoFacePanel {
     return this
   }
 
+  public mappingRotate (right: boolean) {
+    if (this.mapping.swapRowColumn === right) this.mapping.flipRows = !this.mapping.flipRows
+    else this.mapping.flipColumns = !this.mapping.flipColumns
+    this.mapping.swapRowColumn = !this.mapping.swapRowColumn
+    return this
+  }
+
   public getLedState (index: number): boolean {
     return this.ledStates[index]
   }

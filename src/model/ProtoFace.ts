@@ -7,27 +7,27 @@ export class ProtoFace {
 
   constructor () {
     this._panels = [
-      // This is for demo only
-      // Nose R
-      new ProtoFacePanel().moveTo(32, -50),
-      // Nose L
-      new ProtoFacePanel().moveTo(-32, -50),
-      // Mouth L
-      new ProtoFacePanel().moveTo(-128, 0),
-      new ProtoFacePanel().moveTo(-96, 0),
-      new ProtoFacePanel().moveTo(-64, 0),
-      new ProtoFacePanel().moveTo(-32, 0),
-      // Mouth R
-      new ProtoFacePanel().moveTo(32, 0),
-      new ProtoFacePanel().moveTo(64, 0),
-      new ProtoFacePanel().moveTo(96, 0),
-      new ProtoFacePanel().moveTo(128, 0),
-      // Eye R
-      new ProtoFacePanel().moveTo(132, -70),
-      new ProtoFacePanel().moveTo(100, -70),
-      // Eye L
-      new ProtoFacePanel().moveTo(-100, -70),
-      new ProtoFacePanel().moveTo(-132, -70)
+      // This is static for now. L and R looking face-on at proto
+      // Mouth L RR
+      new ProtoFacePanel().moveTo(-128, 0).mappingRotate(true),
+      new ProtoFacePanel().moveTo(-96, 0).mappingRotate(true),
+      new ProtoFacePanel().moveTo(-64, 0).mappingRotate(true),
+      new ProtoFacePanel().moveTo(-32, 0).mappingRotate(true),
+      // Mouth R RR
+      new ProtoFacePanel().moveTo(32, 0).mappingRotate(true),
+      new ProtoFacePanel().moveTo(64, 0).mappingRotate(true),
+      new ProtoFacePanel().moveTo(96, 0).mappingRotate(true),
+      new ProtoFacePanel().moveTo(128, 0).mappingRotate(true),
+      // Eye R RL
+      new ProtoFacePanel().moveTo(132, -70).mappingRotate(false),
+      new ProtoFacePanel().moveTo(100, -70).mappingRotate(false),
+      // Nose R RL
+      new ProtoFacePanel().moveTo(32, -50).mappingRotate(false),
+      // Nose L RL
+      new ProtoFacePanel().moveTo(-32, -50).mappingRotate(false),
+      // Eye L RL
+      new ProtoFacePanel().moveTo(-100, -70).mappingRotate(false),
+      new ProtoFacePanel().moveTo(-132, -70).mappingRotate(false)
     ]
   }
 
