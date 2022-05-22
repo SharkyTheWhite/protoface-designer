@@ -15,7 +15,8 @@
     "types": [
       "webpack-env",
       "jest",
-      "dom-serial"
+      "dom-serial",
+      "web-bluetooth"
     ],
     "paths": {
       "@/*": [
