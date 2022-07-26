@@ -1,13 +1,21 @@
-// DEPRECATED! See newer project in bluetooth_proto_3!
-
 /*
  * Using: 8x8 LED Matrix with MAX7219-compatible Drivers
- * Board: ESP-WROOM-32 on Core_Board_v2
+ * Board: ESP-WROOM-32 on Core_Board_v2 ("ESP32 DevKit")
  *
- * Pinout:
- * GPIO18 ("VSPI_SCK") --> to CLK of first Module
- * GPIO23 ("VSPI_MOSI") --> to DIN of first Module
- * GPIO5  ("VSPI_SS") --> to CS of first Module
+ * *** Pinout: ***
+ * LED Matrix Chain
+ * - GPIO18 ("VSPI_SCK") --> to CLK of first Module
+ * - GPIO23 ("VSPI_MOSI") --> to DIN of first Module
+ * - GPIO5  ("VSPI_SS") --> to CS of first Module
+ * Sound Amplifier (PAM8302)
+ * - GPIO25 ("DAC_1") --> to AIN+ of Amp
+ * - GPIO33 (GPOUT) --> to SDn of Amp, SDn 100K pulldown to GND
+ * - Others: AIN- of Amp to GND, V+ to 5V
+ * Boop Detector (IR Distance Module)
+ * - GPIO16 (GPIN) via Diode* to Out of IR-Sensor
+ *                *) Anode to GPIN, Cathode to IR-Sensor
+ *                   Needs Pullup via GPIO. Diode required
+ *                   since Sensor is 5V OD with LED-Pullup
  *
  * Module Information
  * Looking onto top (LED) side:
@@ -48,6 +56,9 @@ volatile uint8_t framebuffer[MATRIX_COUNT*8];
 #define SPI_MAX_SPEED 4000000
 
 #define SPI_CS_PIN 5
+#define BOOP_PIN 16
+#define SOUND_DAC_PIN 25
+#define SOUND_SDN_PIN 33
 
 SPIClass * vspi = NULL;
 
@@ -145,6 +156,7 @@ BLECharacteristic *pCharacteristic;
 uint8_t mode = 0;
 uint8_t iobuff[64];
 uint8_t *ioptr = iobuff;
+int loopCntr = 0;
 
 uint8_t iohexdec(uint8_t* str) {
   uint8_t v = 0;
@@ -160,7 +172,7 @@ uint8_t iohexdec(uint8_t* str) {
 // !! NO SPI INSIDE HERE!
 void processProtoCommand(uint8_t* cmd, uint8_t cmdlen, void (*writeCb)(const char*)) {
   switch (cmd[0]) {
-        case 'T': {mode = 0; writeCb(":\n");} break;
+        case 'T': {mode = 0; int loopCntr = 0; writeCb(":\n");} break;
         case 'C': {mode = 1; ClearFrameBuffer(); writeCb(":C\n");} break;
         case 'B': {
           if (cmdlen >=3) {
@@ -181,7 +193,7 @@ void processProtoCommand(uint8_t* cmd, uint8_t cmdlen, void (*writeCb)(const cha
           }
           writeCb(":W\n");
         } break;
-        case '?': {writeCb(":PROTO=Marc\n");} break;
+        case '?': {writeCb(":PROTO=Unnamed\n");} break;
         default: {writeCb("!E\n");} break;
       }
 }
@@ -205,7 +217,53 @@ class MyCharacteristicCallback : public BLECharacteristicCallbacks {
   }
 };
 
+void demoBeepBoop() {
+  digitalWrite(SOUND_SDN_PIN, HIGH);
+  for(int i = 0; i < 120; i++) {
+    digitalWrite(SOUND_DAC_PIN, HIGH);
+    delay(1);
+    digitalWrite(SOUND_DAC_PIN, LOW);
+    delay(1);
+  }
+  delay(100);
+  for(int i = 0; i < 50; i++) {
+    digitalWrite(SOUND_DAC_PIN, HIGH);
+    delay(2);
+    digitalWrite(SOUND_DAC_PIN, LOW);
+    delay(2);
+  }
+  digitalWrite(SOUND_SDN_PIN, LOW);
+}
 
+void happyBlip() {
+  digitalWrite(SOUND_SDN_PIN, HIGH);
+  delay(10);
+  for(int i = 0; i < 50; i++) {
+    digitalWrite(SOUND_DAC_PIN, HIGH);
+    delayMicroseconds(100);
+    digitalWrite(SOUND_DAC_PIN, LOW);
+    delayMicroseconds(600);
+  }
+  for(int i = 0; i < 80; i++) {
+    digitalWrite(SOUND_DAC_PIN, HIGH);
+    delayMicroseconds(80);
+    digitalWrite(SOUND_DAC_PIN, LOW);
+    delayMicroseconds(320);
+  }
+  digitalWrite(SOUND_SDN_PIN, LOW);
+}
+
+void angryBeep() {
+  digitalWrite(SOUND_SDN_PIN, HIGH);
+  delay(10);
+  for(int i = 0; i < 20; i++) {
+    digitalWrite(SOUND_DAC_PIN, HIGH);
+    delay(2);
+    digitalWrite(SOUND_DAC_PIN, LOW);
+    delay(2);
+  }
+  digitalWrite(SOUND_SDN_PIN, LOW);
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -217,6 +275,13 @@ void setup() {
   vspi = new SPIClass(VSPI);
   vspi->begin();
   pinMode(vspi->pinSS(), OUTPUT);
+
+  pinMode(BOOP_PIN, INPUT_PULLUP);
+  digitalWrite(SOUND_DAC_PIN, LOW);
+  pinMode(SOUND_DAC_PIN, OUTPUT);
+  digitalWrite(SOUND_SDN_PIN, LOW);
+  pinMode(SOUND_SDN_PIN, OUTPUT);
+  digitalWrite(SOUND_SDN_PIN, LOW);
 
   Serial.begin(115200);
 
@@ -234,7 +299,7 @@ void setup() {
   Serial.write("!BOOT\n");
   //Serial.setTimeout(1000);
 
-  BLEDevice::init("MarCarbon Steel");
+  BLEDevice::init("My Protos BT Name");
   pServer = BLEDevice::createServer();
   pService = pServer->createService(SERVICE_UUID);
   pCharacteristic = pService->createCharacteristic(
@@ -255,6 +320,78 @@ void setup() {
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
 
+  demoBeepBoop();
+
+}
+
+uint8_t face_normal[] = {
+  0x00, 0x40, 0xE0, 0xC0, 0x80, 0x00, 0x00, 0x00,
+  0x38, 0x7C, 0xEE, 0xC7, 0x83, 0x07, 0x0E, 0x04,
+  0x60, 0xF0, 0xF8, 0x9D, 0x0F, 0x07, 0x02, 0x00,
+  0x20, 0x70, 0x39, 0x1F, 0x0F, 0x06, 0x00, 0x00,
+  0x04, 0x0E, 0x9C, 0xF8, 0xF0, 0x60, 0x00, 0x00,
+  0x06, 0x0F, 0x1F, 0xB9, 0xF0, 0xE0, 0x40, 0x00,
+  0x1C, 0x3E, 0x77, 0xE3, 0xC1, 0xE0, 0x70, 0x20,
+  0x00, 0x02, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00,
+  0xF0, 0xFC, 0x1E, 0x03, 0x00, 0x00, 0x00, 0x00,
+  0x1F, 0x3F, 0x7E, 0x78, 0x30, 0x00, 0x00, 0x00,
+  0x1E, 0x3F, 0x7E, 0x40, 0x00, 0x00, 0x00, 0x00,
+  0x78, 0xFC, 0x7E, 0x02, 0x00, 0x00, 0x00, 0x00,
+  0xF8, 0xFC, 0x7E, 0x1E, 0x0C, 0x00, 0x00, 0x00,
+  0x0F, 0x3F, 0x78, 0xC0, 0x00, 0x00, 0x00, 0x00,
+};
+
+uint8_t face_smile[] = {
+  0x00, 0xC4, 0xEE, 0x7C, 0x38, 0x70, 0xE0, 0x40,
+  0xFF, 0xFF, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xFC, 0xFF, 0x07, 0x03, 0x00, 0x00, 0x00, 0x00,
+  0x07, 0x0F, 0x1C, 0x38, 0x70, 0x20, 0x00, 0x00,
+  0xE0, 0xF0, 0x38, 0x1C, 0x0E, 0x04, 0x00, 0x00,
+  0x3F, 0xFF, 0xE0, 0xC0, 0x00, 0x00, 0x00, 0x00,
+  0xFF, 0xFF, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x23, 0x77, 0x3E, 0x1C, 0x0E, 0x07, 0x02,
+  0x80, 0xC0, 0xE0, 0x70, 0x38, 0x1C, 0x08, 0x00,
+  0x01, 0x03, 0x07, 0x0E, 0x1C, 0x38, 0x10, 0x00,
+  0x1E, 0x3F, 0x7E, 0x40, 0x00, 0x00, 0x00, 0x00,
+  0x78, 0xFC, 0x7E, 0x02, 0x00, 0x00, 0x00, 0x00,
+  0x80, 0xC0, 0xE0, 0x70, 0x38, 0x1C, 0x08, 0x00,
+  0x01, 0x03, 0x07, 0x0E, 0x1C, 0x38, 0x10, 0x00,
+};
+
+uint8_t face_angry[] = {
+  0x40, 0xE0, 0xC0, 0x80, 0x00, 0x00, 0x00, 0x00,
+  0x80, 0xC0, 0xE1, 0x73, 0x3F, 0x1E, 0x0C, 0x00,
+  0x07, 0x0F, 0x9C, 0xF8, 0xF0, 0x00, 0x00, 0x00,
+  0x02, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00, 0x00,
+  0x40, 0xE0, 0xC0, 0x80, 0x00, 0x00, 0x00, 0x00,
+  0xE0, 0xF0, 0x39, 0x1F, 0x0F, 0x00, 0x00, 0x00,
+  0x01, 0x03, 0x87, 0xCE, 0xFC, 0x78, 0x30, 0x00,
+  0x02, 0x07, 0x03, 0x01, 0x00, 0x00, 0x00, 0x00,
+  0xF0, 0xF8, 0xF0, 0xE0, 0x80, 0x00, 0x00, 0x00,
+  0x00, 0x03, 0x0F, 0x3F, 0x7F, 0x3E, 0x00, 0x00,
+  0x1E, 0x3F, 0x7E, 0x40, 0x00, 0x00, 0x00, 0x00,
+  0x78, 0xFC, 0x7E, 0x02, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0xC0, 0xF0, 0xFC, 0xFE, 0x7C, 0x00, 0x00,
+  0x0F, 0x1F, 0x0F, 0x07, 0x01, 0x00, 0x00, 0x00,
+};
+
+void enter_mode_3() {
+  memcpy((void*)framebuffer, (void*)face_normal, sizeof(framebuffer));
+  SendFrameBuffer();
+  loopCntr = 0; mode = 3;
+}
+
+void enter_mode_4() {
+  memcpy((void*)framebuffer, (void*)face_smile, sizeof(framebuffer));
+  loopCntr = 0; mode = 4;
+  SendFrameBuffer();
+  happyBlip();
+}
+
+void enter_mode_5() {
+  memcpy((void*)framebuffer, (void*)face_angry, sizeof(framebuffer));
+  SendFrameBuffer();
+  loopCntr = 0; mode = 5;
 }
 
 void loop() {
@@ -269,11 +406,48 @@ void loop() {
     for (k = 0; k < sizeof(framebuffer); k++) {
     framebuffer[k] = (1<<((i+k)%16));
     }
+    // Demo: Speed up when Booped
+    if (digitalRead(BOOP_PIN) == LOW) {
+      i+=2;
+    }
     i++;
     if (i >= 16) {
       i = 0;
     }
     delay(2);
+    loopCntr++;
+    if (loopCntr >= 200) {
+      enter_mode_3();
+    }
+  }
+  if (mode == 3) {
+    if (digitalRead(BOOP_PIN) == LOW) loopCntr++;
+    else if (loopCntr > 0) loopCntr--;
+    if (loopCntr >= 20) {
+      enter_mode_4();
+    }
+    delay(1);
+  }
+  if (mode == 4) {
+    if (digitalRead(BOOP_PIN) == LOW) loopCntr++;
+    else {
+      if (loopCntr > 20) loopCntr = 20;
+      if (loopCntr > 0) loopCntr--;
+    }
+    if (loopCntr <= 0) {
+      enter_mode_3();
+    }
+    if (loopCntr > 200) {
+      enter_mode_5();
+    }
+    delay(1);
+  }
+  if (mode == 5) {
+    if (digitalRead(BOOP_PIN) == LOW) {
+      angryBeep();
+      delay(100);
+    }
+    else enter_mode_3();
   }
   ReConfigureLEDs();
   SendFrameBuffer();

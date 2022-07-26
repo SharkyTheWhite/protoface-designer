@@ -1,5 +1,3 @@
-// DEPRECATED! See newer project in bluetooth_proto_3!
-
 /*
  * Using: 8x8 LED Matrix with MAX7219-compatible Drivers
  * Board: ESP-WROOM-32 on Core_Board_v2

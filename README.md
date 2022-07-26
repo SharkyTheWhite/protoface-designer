@@ -31,7 +31,14 @@ Every aspect of this project is subject to change - this is just a rough map of 
 
 ---
 
-## Project setup
+## Arduino Hardware Project setup
+
+There is a preliminary working example on what hardware has currently been used to develop this app.
+It is only a proof-of-concept but there are some useful snippets already.
+
+This documentation is in the [/arduino](arduino/getting_started.md) folder.
+
+## Web Application Project setup
 ```
 yarn install
 ```
