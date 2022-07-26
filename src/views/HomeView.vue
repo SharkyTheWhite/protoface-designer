@@ -7,13 +7,15 @@
       &middot;
     </div>
     <div class="-view">
-      <ProtoFaceView :face="face" :mirror-mode="mirrorMode" @ledsUpdated="onFaceLedUpdated"/>
+      <ProtoFaceView :face="store.face" :mirror-mode="mirrorMode" @ledsUpdated="onFaceLedUpdated"/>
     </div>
     <div>
       <div>
         <a download="face.h" :href="faceHDataURI">Save <code>face.h</code> File ...</a>
+        &middot;
+        <label><input type="checkbox" v-model="showFaceH"> Show face.h content</label>
         <br><br>
-        <span>A total of <b>{{ totalLedsOn }} LEDs are lit</b></span>
+        <span>A total of <b>{{ store.totalLedsOn }} LEDs are lit</b></span>
       </div>
       <div v-if="isConnected">
         <span style="color:darkgreen;"><br>Connected to: <b>{{ protoName }}</b></span>
@@ -39,6 +41,10 @@
       </div>
       <div v-if="serialError" style="color:red; margin-top: 1em; font-weight: bold;">{{ serialError }}</div>
     </div>
+    <div v-if="showFaceH" style="font-family: monospace; font-size: 10px; text-align: left; margin: 1em 5vw; background: lavender; padding: 1em;">
+      <b>Face.h Content:</b><br>
+      <pre>{{ faceHData }}</pre>
+    </div>
   </div>
 </template>
 
@@ -47,23 +53,26 @@ import ProtoFaceView from '@/components/ProtoFaceView.vue'
 import { computed, ref, watch } from 'vue'
 import { FaceH } from '@/model/FaceH'
 import { ProtoSerial } from '@/hardware/ProtoSerial'
-import { ProtoFace } from '@/model/ProtoFace'
 import { ProtoGATT } from '@/hardware/ProtoGATT'
 import { Proto } from '@/hardware/Proto'
+import { useStore } from '@/store'
 
-const face = new ProtoFace()
+const store = useStore()
 
 const faceH = new FaceH()
 
+faceH.protoFace = store.face
+
+const faceHData = computed(() => {
+  return faceH.getHFileContent()
+})
+
 const faceHDataURI = computed(() => {
-  const content = faceH.getHFileContent()
-  return 'data:text/plain;base64,' + btoa(content)
+  return 'data:text/plain;base64,' + btoa(faceHData.value)
 })
 
 const serialSupported = ProtoSerial.isBrowserSupported()
 const bluetoothSupported = ProtoGATT.isBrowserSupported()
-
-const totalLedsOn = ref(-1)
 
 const serialUpdateRequired = ref(true)
 const serialUpdateInProgress = ref(false)
@@ -72,6 +81,8 @@ const serialError = ref('')
 const brightnessSlider = ref(32)
 
 const mirrorMode = ref(false)
+
+const showFaceH = ref(false)
 
 declare global {
   interface Window {
@@ -91,7 +102,7 @@ function updateSerialProto () {
   serialUpdateInProgress.value = true
   serialUpdateRequired.value = false
   proto.setBrightness(brightnessSlider.value).then(() => {
-    proto.writeFrame(face.getFullFrame()).catch((reason) => {
+    proto.writeFrame(store.face.getFullFrame()).catch((reason) => {
       serialError.value = reason.message
     }).then(() => {
       serialError.value = ''
@@ -104,7 +115,6 @@ function updateSerialProto () {
 }
 
 function onFaceLedUpdated () {
-  totalLedsOn.value = face.getNumberOfLitLEDs()
   updateSerialProto()
 }
 

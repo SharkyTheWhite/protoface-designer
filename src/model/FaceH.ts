@@ -1,8 +1,12 @@
+import { useStore } from '@/store'
+
 export class FaceH {
   private projectData : object = {
     generator: 'io.github.sharkythewhite.protoface-designer',
     version: '0.0.1'
   };
+
+  private readonly store = useStore()
 
   public getHFileContent () : string {
     return `${this.getHeader()}
@@ -58,25 +62,40 @@ ${this.getProjectJSON()}
     return name.replaceAll(' ', '_').toLowerCase()
   }
 
-  public static getCHexIntBlock (data: number[]) : string {
+  public static getCHexIntBlock (data: number[], indent = '', wrapCount = 8) : string {
     let str = ''
     for (let i = 0; i < data.length; i++) {
-      str += `0x${data[i].toString(16)},${(i % 16) === 16 ? '\n' : ' '}`
+      str += `0x${data[i].toString(16).padStart(2, '0').toUpperCase()},${(i % wrapCount) >= (wrapCount - 1) ? ('\n' + indent) : ' '}`
     }
     return str
   }
 
+  public static packBooleanStateToBitmap (frame : Array<boolean>): Array<number> {
+    const buffer : Array<number> = []
+    for (let i = 0; i < frame.length; i += 8) {
+      let byte = 0
+      for (let k = 0; k < 8; k++) {
+        if (frame[i + k]) byte += (1 << k)
+      }
+      buffer.push(byte)
+    }
+    return buffer
+  }
+
   protected getCData () : string {
-    const bitmaps = [{
-      name: 'My Face Design 1',
-      data: [2, 3, 5, 7, 11, 22, 18, 255]
-    }]
+    const bitmaps = []
+    if (this.store.face) {
+      bitmaps.push({
+        name: 'Face 1',
+        data: FaceH.packBooleanStateToBitmap(this.store.face.getFullFrame())
+      })
+    }
     let str = ''
     for (const bitmap of bitmaps) {
       str += `
 // Bitmap "${bitmap.name}"
 PROTOFACE_BITMAP_SPEC(${FaceH.getCName(bitmap.name)}) = {
-  ${FaceH.getCHexIntBlock(bitmap.data)}
+  ${FaceH.getCHexIntBlock(bitmap.data, '  ')}
 };
 `
     }

@@ -1,14 +1,17 @@
-import { createStore } from 'vuex'
+import { defineStore } from 'pinia'
+import { ProtoFace } from '@/model/ProtoFace'
 
-export default createStore({
-  state: {
+export const useStore = defineStore('protoface', {
+  state: () => {
+    return {
+      projectLastSavedAt: undefined as Date | undefined,
+      face: new ProtoFace()
+    }
   },
   getters: {
-  },
-  mutations: {
+    totalLedsOn: (state) => state.face.getNumberOfLitLEDs()
   },
   actions: {
-  },
-  modules: {
+
   }
 })
