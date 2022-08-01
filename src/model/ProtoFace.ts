@@ -46,4 +46,13 @@ export class ProtoFace {
     }
     return frame
   }
+
+  public setFullFrame (frame : boolean[]) {
+    let i = 0
+    for (const panel of this.panels) {
+      for (const k in panel.ledStates) {
+        panel.ledStates[k] = frame[i++]
+      }
+    }
+  }
 }

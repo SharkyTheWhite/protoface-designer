@@ -13,6 +13,9 @@
       <div>
         <a download="face.h" :href="faceHDataURI">Save <code>face.h</code> File ...</a>
         &middot;
+        <input type="file" @change="openHFileFromInput" ref="openHFileInput" style="visibility: hidden; width: 0; height: 0;" />
+        <span @click="openHFileDialog">Open <code>face.h</code> File ...</span>
+        &middot;
         <label><input type="checkbox" v-model="showFaceH"> Show face.h content</label>
         <br><br>
         <span>A total of <b>{{ store.totalLedsOn }} LEDs are lit</b></span>
@@ -70,6 +73,37 @@ const faceHData = computed(() => {
 const faceHDataURI = computed(() => {
   return 'data:text/plain;base64,' + btoa(faceHData.value)
 })
+
+const openHFileInput = ref<HTMLInputElement>()
+function openHFileDialog () {
+  openHFileInput.value?.click()
+}
+
+async function openHFileFromInput () {
+  const control = openHFileInput.value
+  if (!control || control.files?.length !== 1) return
+  const file = control.files[0]
+  const text = await file.text()
+  control.value = '' // Clear field, so we can reuse it to open the same file again
+  const arrays = [...FaceH.parseFaceH(text)]
+
+  if (!arrays.length) {
+    alert('Could not find any patterns in the file you uploaded.')
+    return
+  }
+  let i = 0
+  if (arrays.length > 1) {
+    const choice = arrays.reduce((x, v, i) => x + `\n${i}: ${v[0]}`, 'Please choose:')
+    i = parseInt(prompt(choice) ?? '0')
+  }
+  if (i >= 0 && i < arrays.length) {
+    const pattern = arrays[i][1]
+    const frame = FaceH.unpackBitmapToBooleanStates(pattern)
+    store.face.setFullFrame(frame)
+  } else {
+    alert('Invalid selection!')
+  }
+}
 
 const serialSupported = ProtoSerial.isBrowserSupported()
 const bluetoothSupported = ProtoGATT.isBrowserSupported()

@@ -70,6 +70,38 @@ ${this.getProjectJSON()}
     return str
   }
 
+  public static parseCIntBlock (source: string, allowDecimal = true) : number[] {
+    const parsePattern = allowDecimal ? /\s*(\d+|0x[\dA-Fa-f]+)\s*(?:,|$)/ig : /\s*(0x[\dA-Fa-f]+)\s*(?:,|$)/ig
+    let limitDataCount = 1000
+    let bodyMatch
+    const data : number[] = []
+    while (--limitDataCount && (bodyMatch = parsePattern.exec(source)) !== null) {
+      data.push(parseInt(bodyMatch[1]))
+    }
+    return data
+  }
+
+  public static * parseFaceH (fileContent: string, allowNativeArrays = true) : Generator<[string, number[]]> {
+    /* INTERMEDIATE CODE!
+       Scan for well-formatted byte arrays written in decimal or hex as exported by us.
+       We accept native arrays of 8-bit integer types (when allowNativeArrays) or our specification macro format.
+       Result: nameNative|nameSpec hold the name, dataBody is parsed further.
+     */
+    const searchPatternForArrays = /(?:(?:u?int8_t|char|byte)\s+(?<nameNative>[a-z_][a-z\d_]*)\s*\[[\s\d]*]|PROTOFACE_BITMAP_SPEC\s*\((?<nameSpec>[a-z_][a-z\d_]*)\))\s*=\s*{(?<dataBody>(?:\s*(\d{1,3}|0x[\dA-Fa-f]{1,2})\s*,)+(?:\d{1,3}|0x[\dA-Fa-f]{1,2})?)\s*}\s*;/ig
+
+    let limitPatternCount = 1000
+
+    let arrayMatch
+    while (--limitPatternCount && (arrayMatch = searchPatternForArrays.exec(fileContent)) !== null) {
+      if (!arrayMatch.groups) continue
+      const patternName = arrayMatch.groups.nameSpec ?? (allowNativeArrays ? arrayMatch.groups.nameNative : null)
+      const patternBody = arrayMatch.groups.dataBody
+      if (!patternName || !patternBody) continue
+      const patternData = FaceH.parseCIntBlock(patternBody)
+      yield [patternName, patternData]
+    }
+  }
+
   public static packBooleanStateToBitmap (frame : Array<boolean>): Array<number> {
     const buffer : Array<number> = []
     for (let i = 0; i < frame.length; i += 8) {
@@ -78,6 +110,16 @@ ${this.getProjectJSON()}
         if (frame[i + k]) byte += (1 << k)
       }
       buffer.push(byte)
+    }
+    return buffer
+  }
+
+  public static unpackBitmapToBooleanStates (bitmap : number[]): boolean[] {
+    const buffer : boolean[] = []
+    for (const line of bitmap) {
+      for (let k = 0; k < 8; k++) {
+        buffer.push((line & (1 << k)) !== 0)
+      }
     }
     return buffer
   }
