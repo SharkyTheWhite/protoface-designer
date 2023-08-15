@@ -51,7 +51,7 @@ export class ProtoGATT extends Proto {
         throw new Error('Incompatible Proto. Got ' + nameInfo)
       }
     }).catch((reason) => {
-      console.log(`ProtoGATT Connect Failed: ${reason}`)
+      alert(`ProtoGATT Connect Failed: ${reason}`)
     })
   }
 

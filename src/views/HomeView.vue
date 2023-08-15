@@ -203,8 +203,8 @@ function connectBluetooth () {
 
 function disconnectProto () {
   const proto = window.protofaceDesignerConnectedProto
-  proto?.disconnect().catch((reason: DOMException) => {
-    console.log({ ProtoSerialDisconnectError: reason.message })
+  proto?.disconnect().catch((/* reason: DOMException */) => {
+    // console.log({ ProtoSerialDisconnectError: reason.message })
   })
   isConnected.value = false
   isConnecting.value = false

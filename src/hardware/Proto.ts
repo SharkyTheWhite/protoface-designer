@@ -48,7 +48,6 @@ export abstract class Proto extends EventTarget {
   }
 
   public async setBrightness (brightness: number) {
-    console.log({ brightness })
     if (brightness < 0) brightness = 0
     if (brightness > 255) brightness = 255
     const bri = brightness.toString(16).toUpperCase().padStart(2, '0')
